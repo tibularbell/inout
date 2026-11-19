@@ -411,7 +411,7 @@ export default function App() {
       
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold text-white transition-all animate-in slide-in-from-top-4 backdrop-blur-md"
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold text-white transition-all animate-in slide-in-from-top-4 backdrop-blur-md print:hidden"
           style={{
             backgroundColor:
               toastMessage.type === 'success'
@@ -453,7 +453,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 print:hidden">
         {activeTab === 'ANALYTICS' ? (
           <AnalyticsDashboard
             documents={documents}
@@ -582,11 +582,11 @@ export default function App() {
 
       {/* PRINT SLIP TEMPLATE (Only renders on print) */}
       {selectedDoc && (
-        <div className="hidden print-slip">
+        <div className="hidden print:block print-slip">
           <div className="border-4 border-double border-slate-800 p-8 max-w-2xl mx-auto text-black font-serif">
             <div className="text-center pb-4 border-b-2 border-slate-700">
               <h1 className="text-xl font-bold tracking-tight">โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี</h1>
-              <p className="text-sm">ตำบลบ้านรี อำเภอเมือง จังหวัดอ่างทอง ๑๔๐๐๐</p>
+              <p className="text-sm">ตำบลบ้านรี อำเภอดอนพุด จังหวัดสระบุรี</p>
               <h2 className="text-lg font-bold mt-2 bg-slate-200 py-1 rounded">
                 บัตรตรวจติดตามงานสารบรรณ / ใบปะหน้าเอกสารราชการ
               </h2>
@@ -631,7 +631,7 @@ export default function App() {
               </div>
               <div className="text-right mt-4 text-xs">
                 ลงชื่อ .................................................... ผอ.รพ.สต.บ้านรี<br />
-                (....... / ....... / ๒๕๖๙)
+                (....... / ....... / {toThaiNumerals(selectedDoc.year || 2570)})
               </div>
             </div>
 

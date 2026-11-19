@@ -25,7 +25,9 @@ import {
   Download,
   Eye,
   Pencil,
-  AlertCircle
+  AlertCircle,
+  FileDown,
+  Loader2
 } from 'lucide-react';
 import { DocumentStatus, SarabanDoc, StaffUser } from '../types/document';
 import { 
@@ -38,6 +40,7 @@ import {
   toThaiNumerals 
 } from '../utils/thaiFormat';
 import { resolveDocumentAttachment } from '../services/attachmentStore';
+import { exportCoverSlipPdf } from '../services/pdfExport';
 
 interface DocumentDetailModalProps {
   doc: SarabanDoc | null;
@@ -65,6 +68,8 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [pdfStatus, setPdfStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [resolvedAttachment, setResolvedAttachment] = useState<{
     url: string;
     mimeType: string;
@@ -80,6 +85,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     setResolvedAttachment(null);
     setAttachmentError(false);
     setIsPreviewOpen(false);
+    setPdfStatus(null);
 
     if (isOpen && doc && (doc.attachmentUrl || doc.attachmentName)) {
       resolveDocumentAttachment(doc.id, doc.attachmentUrl, doc.attachmentName)
@@ -137,17 +143,39 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
     window.print();
   };
 
+  const handleExportPdf = async () => {
+    if (isExportingPdf) return;
+    setIsExportingPdf(true);
+    setPdfStatus(null);
+    try {
+      const filename = await exportCoverSlipPdf(doc);
+      setPdfStatus({
+        type: 'success',
+        message: `บันทึกไฟล์ PDF (${filename}) ลงเครื่องเรียบร้อยแล้ว`,
+      });
+      setTimeout(() => setPdfStatus(null), 5000);
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+      setPdfStatus({
+        type: 'error',
+        message: 'ไม่สามารถสร้างไฟล์ PDF ได้ กรุณาลองใช้ปุ่ม "สั่งพิมพ์ใบปะหน้า" แล้วเลือก Save as PDF แทน',
+      });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   // QR Code URL: generates SVG data URL using simple encoding or qr server
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
     `รพ.สต.บ้านรี | ทะเบียน: ${doc.bookNo} | เรื่อง: ${doc.subject} | สถานะ: ${statusMeta.label}`
   )}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col print:max-w-none print:shadow-none print:border-none print:rounded-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in print:hidden">
+      <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
         
         {/* Header */}
-        <div className="px-5 py-4 bg-emerald-900 text-white flex items-center justify-between flex-shrink-0 print:hidden">
+        <div className="px-5 py-4 bg-emerald-900 text-white flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${typeMeta.badgeBg}`}>
               {typeMeta.label}
@@ -181,12 +209,27 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
 
             <button
               type="button"
-              onClick={handlePrintSlip}
-              title="พิมพ์บัตรตรวจติดตามงาน / ใบปะหน้า"
-              className="p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-semibold"
+              onClick={handleExportPdf}
+              disabled={isExportingPdf}
+              title="บันทึกใบปะหน้าเป็นไฟล์ PDF ลงเครื่อง"
+              className="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-500 disabled:opacity-60 text-white rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold border border-sky-400/50"
             >
-              <Printer className="w-4 h-4" />
-              <span className="hidden sm:inline">พิมพ์ใบปะหน้า</span>
+              {isExportingPdf ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <FileDown className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden md:inline">Export as PDF</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePrintSlip}
+              title="สั่งพิมพ์ใบปะหน้าเอกสารราชการ"
+              className="px-2.5 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold border border-emerald-600/60"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">สั่งพิมพ์ใบปะหน้า</span>
             </button>
 
             <button
@@ -198,6 +241,25 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
             </button>
           </div>
         </div>
+
+        {pdfStatus && (
+          <div
+            className={`px-5 py-2 text-xs font-semibold flex items-center justify-between gap-2 border-b ${
+              pdfStatus.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border-rose-200'
+            }`}
+          >
+            <span>{pdfStatus.message}</span>
+            <button
+              type="button"
+              onClick={() => setPdfStatus(null)}
+              className="text-current opacity-70 hover:opacity-100"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Modal Navigation Tabs */}
         <div className="flex items-center gap-1 px-5 pt-3 bg-slate-50 border-b border-slate-200 flex-shrink-0 print:hidden">
@@ -580,22 +642,61 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handlePrintSlip}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all"
-              >
-                <Printer className="w-4 h-4" />
-                <span>พิมพ์ใบปะหน้าพร้อม QR Code</span>
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportPdf}
+                  disabled={isExportingPdf}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white rounded-xl text-xs font-bold transition-all"
+                >
+                  {isExportingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileDown className="w-4 h-4" />
+                  )}
+                  <span>{isExportingPdf ? 'กำลังสร้างไฟล์ PDF...' : 'Export as PDF'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrintSlip}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>พิมพ์ใบปะหน้าพร้อม QR Code</span>
+                </button>
+              </div>
             </div>
           )}
 
         </div>
 
-        {/* Footer with Edit & Destructive Action Buttons */}
+        {/* Footer with Print, PDF Export, Edit & Destructive Action Buttons */}
         <div className="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex items-center justify-between gap-2 flex-wrap flex-shrink-0 print:hidden">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleExportPdf}
+              disabled={isExportingPdf}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-sky-700 hover:bg-sky-800 disabled:opacity-60 rounded-lg shadow-xs transition-colors"
+            >
+              {isExportingPdf ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <FileDown className="w-3.5 h-3.5" />
+              )}
+              <span>{isExportingPdf ? 'กำลังสร้าง PDF...' : 'Export as PDF'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePrintSlip}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-800 hover:bg-emerald-900 rounded-lg shadow-xs transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>สั่งพิมพ์ใบปะหน้า</span>
+            </button>
+
             <button
               type="button"
               onClick={() => onEditRequest(doc)}

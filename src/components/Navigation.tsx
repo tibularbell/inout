@@ -135,7 +135,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       </nav>
 
       {/* Mobile Sticky Bottom Navigation Bar for Smartphone Officers */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-lg print:hidden">
         <div className="grid grid-cols-5 gap-1 items-center">
           {tabs
             .filter((t) => ['ALL', 'OUTGOING', 'INCOMING', 'ORDER', 'PURCHASE_ORDER'].includes(t.id))
