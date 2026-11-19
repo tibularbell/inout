@@ -10,7 +10,8 @@ import {
   Paperclip, 
   Camera, 
   CheckCircle2,
-  Pencil
+  Pencil,
+  CalendarClock
 } from 'lucide-react';
 import { Confidentiality, DocumentStatus, DocumentType, Priority, SarabanDoc, StaffUser } from '../types/document';
 import { toArabicNumerals, toThaiNumerals } from '../utils/thaiFormat';
@@ -148,6 +149,10 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
         setFromDept('โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี');
         setToDept('เจ้าหน้าที่ผู้มีรายนามตามคำสั่ง');
         setStatus('COMPLETED');
+      } else if (docType === 'DUTY_ORDER') {
+        setFromDept('โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี');
+        setToDept('เจ้าหน้าที่ รพ.สต.บ้านรี (ปฏิบัติงานนอกเวลา/วันหยุด)');
+        setStatus('COMPLETED');
       } else if (docType === 'HIRE_ORDER') {
         setFromDept('งานพัสดุ รพ.สต.บ้านรี');
         setToDept('');
@@ -232,6 +237,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
     { id: 'OUTGOING', label: 'เลขที่ส่ง', icon: <Send className="w-4 h-4" /> },
     { id: 'INCOMING', label: 'เลขที่รับ', icon: <Inbox className="w-4 h-4" /> },
     { id: 'ORDER', label: 'คำสั่ง', icon: <FileBadge className="w-4 h-4" /> },
+    { id: 'DUTY_ORDER', label: 'คำสั่งเวรยาม', icon: <CalendarClock className="w-4 h-4" /> },
     { id: 'HIRE_ORDER', label: 'เลขที่สั่งจ้าง', icon: <Wrench className="w-4 h-4" /> },
     { id: 'PURCHASE_ORDER', label: 'เลขที่สั่งซื้อ', icon: <ShoppingCart className="w-4 h-4" /> },
   ];
@@ -360,16 +366,35 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
 
           {/* Subject (เรื่อง) */}
           <div>
-            <label className="text-xs font-bold text-slate-800 block mb-1">
-              เรื่อง (สาระสำคัญของเอกสาร) <span className="text-rose-600">*</span>
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+              <label className="text-xs font-bold text-slate-800">
+                เรื่อง (สาระสำคัญของเอกสาร) <span className="text-rose-600">*</span>
+              </label>
+              {docType === 'DUTY_ORDER' && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSubject(
+                      'ให้เจ้าหน้าที่โรงพยาบาลส่งเสริมสุขภาพตำบลปฏิบัติงานนอกเวลาราชการและวันหยุดราชการ ()'
+                    )
+                  }
+                  className="text-[11px] font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2 py-0.5 rounded-md transition-colors"
+                >
+                  + ใช้ข้อความมาตรฐานเวรยาม
+                </button>
+              )}
+            </div>
             <textarea
               required
               rows={2}
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-emerald-600 focus:outline-hidden resize-none"
-              placeholder="ระบุชื่อเรื่อง วัตถุประสงค์ หรือสาระสำคัญของหนังสือราชการ..."
+              placeholder={
+                docType === 'DUTY_ORDER'
+                  ? 'เช่น ให้เจ้าหน้าที่โรงพยาบาลส่งเสริมสุขภาพตำบลปฏิบัติงานนอกเวลาราชการและวันหยุดราชการ (มิถุนายน69)'
+                  : 'ระบุชื่อเรื่อง วัตถุประสงค์ หรือสาระสำคัญของหนังสือราชการ...'
+              }
             />
           </div>
 

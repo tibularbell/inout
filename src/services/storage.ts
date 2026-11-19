@@ -5,11 +5,165 @@ import { deleteAttachmentFromIDB, saveAttachmentToIDB } from './attachmentStore'
 
 const STORAGE_KEY_DOCS = 'banri_saraban_documents_v1';
 const STORAGE_KEY_ALERTS = 'banri_saraban_alerts_v1';
+const STORAGE_KEY_DUTY_SEEDED = 'banri_saraban_duty_seeded_v1';
 
 // BroadcastChannel สำหรับซิงค์สถานะข้ามแท็บและจำลองเรียลไทม์
 const broadcast = typeof window !== 'undefined' && 'BroadcastChannel' in window 
   ? new BroadcastChannel('banri_saraban_realtime') 
   : null;
+
+const INITIAL_DUTY_DOCS: SarabanDoc[] = [
+  {
+    id: 'doc-duty-001',
+    type: 'DUTY_ORDER',
+    bookNo: '1/2569',
+    arabicNo: '1/2569',
+    runningNumber: 1,
+    year: 2569,
+    date: '2026-01-25',
+    receivedOrSentDate: '2026-01-25',
+    subject: 'ให้เจ้าหน้าที่โรงพยาบาลส่งเสริมสุขภาพตำบลปฏิบัติงานนอกเวลาราชการและวันหยุดราชการ (กพ.69)',
+    fromDept: 'โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี',
+    toDept: 'เจ้าหน้าที่ รพ.สต.บ้านรี (ปฏิบัติงานนอกเวลา/วันหยุด)',
+    speed: 'NORMAL',
+    secret: 'NORMAL',
+    status: 'COMPLETED',
+    officerInCharge: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+    signer: 'นายสมพงษ์ มลิวัลย์ (ผอ.รพ.สต.บ้านรี)',
+    notes: '',
+    logs: [
+      {
+        id: 'log-duty-1',
+        timestamp: '2026-01-25T08:30:00Z',
+        action: 'ลงทะเบียนคำสั่งเวรยาม',
+        user: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+        details: 'ออกคำสั่งเวรยามที่ 1/2569 (กพ.69)',
+      },
+    ],
+    createdAt: '2026-01-25T08:30:00Z',
+    updatedAt: '2026-01-25T08:30:00Z',
+  },
+  {
+    id: 'doc-duty-002',
+    type: 'DUTY_ORDER',
+    bookNo: '2/2569',
+    arabicNo: '2/2569',
+    runningNumber: 2,
+    year: 2569,
+    date: '2026-02-25',
+    receivedOrSentDate: '2026-02-25',
+    subject: 'ให้เจ้าหน้าที่โรงพยาบาลส่งเสริมสุขภาพตำบลปฏิบัติงานนอกเวลาราชการและวันหยุดราชการ (มีนาคม69)',
+    fromDept: 'โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี',
+    toDept: 'เจ้าหน้าที่ รพ.สต.บ้านรี (ปฏิบัติงานนอกเวลา/วันหยุด)',
+    speed: 'NORMAL',
+    secret: 'NORMAL',
+    status: 'COMPLETED',
+    officerInCharge: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+    signer: 'นายสมพงษ์ มลิวัลย์ (ผอ.รพ.สต.บ้านรี)',
+    notes: '',
+    logs: [
+      {
+        id: 'log-duty-2',
+        timestamp: '2026-02-25T08:30:00Z',
+        action: 'ลงทะเบียนคำสั่งเวรยาม',
+        user: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+        details: 'ออกคำสั่งเวรยามที่ 2/2569 (มีนาคม69)',
+      },
+    ],
+    createdAt: '2026-02-25T08:30:00Z',
+    updatedAt: '2026-02-25T08:30:00Z',
+  },
+  {
+    id: 'doc-duty-003',
+    type: 'DUTY_ORDER',
+    bookNo: '3/2569',
+    arabicNo: '3/2569',
+    runningNumber: 3,
+    year: 2569,
+    date: '2026-03-29',
+    receivedOrSentDate: '2026-03-29',
+    subject: 'ให้เจ้าหน้าที่โรงพยาบาลส่งเสริมสุขภาพตำบลปฏิบัติงานนอกเวลาราชการและวันหยุดราชการ (เมษายน69)',
+    fromDept: 'โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี',
+    toDept: 'เจ้าหน้าที่ รพ.สต.บ้านรี (ปฏิบัติงานนอกเวลา/วันหยุด)',
+    speed: 'NORMAL',
+    secret: 'NORMAL',
+    status: 'COMPLETED',
+    officerInCharge: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+    signer: 'นายสมพงษ์ มลิวัลย์ (ผอ.รพ.สต.บ้านรี)',
+    notes: '',
+    logs: [
+      {
+        id: 'log-duty-3',
+        timestamp: '2026-03-29T08:30:00Z',
+        action: 'ลงทะเบียนคำสั่งเวรยาม',
+        user: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+        details: 'ออกคำสั่งเวรยามที่ 3/2569 (เมษายน69)',
+      },
+    ],
+    createdAt: '2026-03-29T08:30:00Z',
+    updatedAt: '2026-03-29T08:30:00Z',
+  },
+  {
+    id: 'doc-duty-004',
+    type: 'DUTY_ORDER',
+    bookNo: '4/2569',
+    arabicNo: '4/2569',
+    runningNumber: 4,
+    year: 2569,
+    date: '2026-04-08',
+    receivedOrSentDate: '2026-04-08',
+    subject: 'ให้เจ้าหน้าที่โรงพยาบาลส่งเสริมสุขภาพตำบลปฏิบัติงานนอกเวลาช่วงเทศกาลสงกรานต์ 2569',
+    fromDept: 'โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี',
+    toDept: 'เจ้าหน้าที่ รพ.สต.บ้านรี (เวรเทศกาลสงกรานต์ ๒๕๖๙)',
+    speed: 'URGENT',
+    secret: 'NORMAL',
+    status: 'COMPLETED',
+    officerInCharge: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+    signer: 'นายสมพงษ์ มลิวัลย์ (ผอ.รพ.สต.บ้านรี)',
+    notes: '',
+    logs: [
+      {
+        id: 'log-duty-4',
+        timestamp: '2026-04-08T08:30:00Z',
+        action: 'ลงทะเบียนคำสั่งเวรยาม',
+        user: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+        details: 'ออกคำสั่งเวรยามที่ 4/2569 (เทศกาลสงกรานต์ 2569)',
+      },
+    ],
+    createdAt: '2026-04-08T08:30:00Z',
+    updatedAt: '2026-04-08T08:30:00Z',
+  },
+  {
+    id: 'doc-duty-005',
+    type: 'DUTY_ORDER',
+    bookNo: '5/2569',
+    arabicNo: '5/2569',
+    runningNumber: 5,
+    year: 2569,
+    date: '2026-04-29',
+    receivedOrSentDate: '2026-04-29',
+    subject: 'ให้เจ้าหน้าที่โรงพยาบาลส่งเสริมสุขภาพตำบลปฏิบัติงานนอกเวลาราชการและวันหยุดราชการ (พฤษภาคม69)',
+    fromDept: 'โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี',
+    toDept: 'เจ้าหน้าที่ รพ.สต.บ้านรี (ปฏิบัติงานนอกเวลา/วันหยุด)',
+    speed: 'NORMAL',
+    secret: 'NORMAL',
+    status: 'COMPLETED',
+    officerInCharge: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+    signer: 'นายสมพงษ์ มลิวัลย์ (ผอ.รพ.สต.บ้านรี)',
+    notes: '',
+    logs: [
+      {
+        id: 'log-duty-5',
+        timestamp: '2026-04-29T08:30:00Z',
+        action: 'ลงทะเบียนคำสั่งเวรยาม',
+        user: 'นางสาวมาลี รักงาน (จพ.ธุรการ)',
+        details: 'ออกคำสั่งเวรยามที่ 5/2569 (พฤษภาคม69)',
+      },
+    ],
+    createdAt: '2026-04-29T08:30:00Z',
+    updatedAt: '2026-04-29T08:30:00Z',
+  },
+];
 
 // ข้อมูลจำลองเริ่มต้นของ รพ.สต.บ้านรี ประจำปี พ.ศ. 2569
 const INITIAL_DOCS: SarabanDoc[] = [
@@ -186,6 +340,7 @@ const INITIAL_DOCS: SarabanDoc[] = [
     createdAt: '2026-11-07T10:00:00Z',
     updatedAt: '2026-11-07T10:00:00Z',
   },
+  ...INITIAL_DUTY_DOCS,
 ];
 
 const INITIAL_ALERTS: RealtimeAlert[] = [
@@ -219,9 +374,20 @@ export function loadAllDocuments(): SarabanDoc[] {
     const raw = localStorage.getItem(STORAGE_KEY_DOCS);
     if (!raw) {
       localStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(INITIAL_DOCS));
+      localStorage.setItem(STORAGE_KEY_DUTY_SEEDED, '1');
       return INITIAL_DOCS;
     }
-    return JSON.parse(raw);
+    const parsed: SarabanDoc[] = JSON.parse(raw);
+    if (!localStorage.getItem(STORAGE_KEY_DUTY_SEEDED)) {
+      const hasDuty = parsed.some((d) => d.type === 'DUTY_ORDER');
+      localStorage.setItem(STORAGE_KEY_DUTY_SEEDED, '1');
+      if (!hasDuty) {
+        const merged = [...parsed, ...INITIAL_DUTY_DOCS];
+        localStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(merged));
+        return merged;
+      }
+    }
+    return parsed;
   } catch (err) {
     console.error('Error loading documents:', err);
     return INITIAL_DOCS;
@@ -291,6 +457,10 @@ export function getNextRunningNumber(type: DocumentType, year = 2569): {
     case 'ORDER':
       bookNoThai = `คำสั่ง รพ.สต.บ้านรี ที่ ${toThaiNumerals(nextRunning)}/${yearThai}`;
       bookNoArabic = `คำสั่ง รพ.สต.บ้านรี ที่ ${nextRunning}/${year}`;
+      break;
+    case 'DUTY_ORDER':
+      bookNoThai = `${nextRunning}/${year}`;
+      bookNoArabic = `${nextRunning}/${year}`;
       break;
     case 'HIRE_ORDER':
       bookNoThai = `จ. ${runningThai}/${yearThai}`;

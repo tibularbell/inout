@@ -10,7 +10,8 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   TrendingUp,
-  FileSpreadsheet
+  FileSpreadsheet,
+  CalendarClock
 } from 'lucide-react';
 import { SarabanDoc } from '../types/document';
 import { formatCurrency, toThaiNumerals } from '../utils/thaiFormat';
@@ -29,6 +30,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const outgoingCount = documents.filter((d) => d.type === 'OUTGOING').length;
   const incomingCount = documents.filter((d) => d.type === 'INCOMING').length;
   const orderCount = documents.filter((d) => d.type === 'ORDER').length;
+  const dutyOrderCount = documents.filter((d) => d.type === 'DUTY_ORDER').length;
   const hireCount = documents.filter((d) => d.type === 'HIRE_ORDER').length;
   const purchaseCount = documents.filter((d) => d.type === 'PURCHASE_ORDER').length;
 
@@ -92,14 +94,14 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         <div className="absolute right-0 bottom-0 translate-x-12 translate-y-12 w-64 h-64 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
       </div>
 
-      {/* 5 Core Document Types Grid */}
+      {/* 6 Core Document Types Grid */}
       <div>
         <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-1.5">
           <BarChart3 className="w-4 h-4 text-emerald-700" />
-          <span>จำนวนทะเบียนเอกสาร ๕ หมวดหมู่งาน</span>
+          <span>จำนวนทะเบียนเอกสาร ๖ หมวดหมู่งาน</span>
         </h3>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* Outgoing */}
           <div 
             onClick={() => onFilterType('OUTGOING')}
@@ -142,6 +144,20 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             </span>
           </div>
 
+          {/* Duty Order */}
+          <div 
+            onClick={() => onFilterType('DUTY_ORDER')}
+            className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-teal-500 shadow-xs hover:shadow-md transition-all cursor-pointer"
+          >
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center mb-2">
+              <CalendarClock className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-semibold text-slate-500 block">คำสั่งเวรยาม</span>
+            <span className="text-xl font-black text-slate-900 mt-1 block">
+              {dutyOrderCount} <span className="text-xs font-normal text-slate-400">ฉบับ</span>
+            </span>
+          </div>
+
           {/* Hire Order */}
           <div 
             onClick={() => onFilterType('HIRE_ORDER')}
@@ -159,7 +175,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           {/* Purchase Order */}
           <div 
             onClick={() => onFilterType('PURCHASE_ORDER')}
-            className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-rose-500 shadow-xs hover:shadow-md transition-all cursor-pointer col-span-2 sm:col-span-1"
+            className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-rose-500 shadow-xs hover:shadow-md transition-all cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center mb-2">
               <ShoppingCart className="w-5 h-5" />

@@ -6,7 +6,8 @@ import {
   FileBadge, 
   Wrench, 
   ShoppingCart, 
-  BarChart3 
+  BarChart3,
+  CalendarClock
 } from 'lucide-react';
 import { DocumentType } from '../types/document';
 
@@ -59,6 +60,13 @@ export const Navigation: React.FC<NavigationProps> = ({
       shortLabel: 'คำสั่ง',
       icon: <FileBadge className="w-4 h-4 sm:w-4.5 sm:h-4.5" />,
       color: 'purple',
+    },
+    {
+      id: 'DUTY_ORDER',
+      label: 'คำสั่งเวรยาม',
+      shortLabel: 'เวรยาม',
+      icon: <CalendarClock className="w-4 h-4 sm:w-4.5 sm:h-4.5" />,
+      color: 'teal',
     },
     {
       id: 'HIRE_ORDER',
@@ -135,10 +143,10 @@ export const Navigation: React.FC<NavigationProps> = ({
       </nav>
 
       {/* Mobile Sticky Bottom Navigation Bar for Smartphone Officers */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-lg print:hidden">
-        <div className="grid grid-cols-5 gap-1 items-center">
+      <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 px-1.5 py-1.5 shadow-lg print:hidden">
+        <div className="grid grid-cols-6 gap-0.5 items-center">
           {tabs
-            .filter((t) => ['ALL', 'OUTGOING', 'INCOMING', 'ORDER', 'PURCHASE_ORDER'].includes(t.id))
+            .filter((t) => ['ALL', 'OUTGOING', 'INCOMING', 'ORDER', 'DUTY_ORDER', 'PURCHASE_ORDER'].includes(t.id))
             .map((tab) => {
               const isActive = activeTab === tab.id;
               const count = counts[tab.id] ?? 0;

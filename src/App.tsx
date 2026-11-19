@@ -156,6 +156,7 @@ export default function App() {
       OUTGOING: 0,
       INCOMING: 0,
       ORDER: 0,
+      DUTY_ORDER: 0,
       HIRE_ORDER: 0,
       PURCHASE_ORDER: 0,
       ANALYTICS: 0,
@@ -172,6 +173,7 @@ export default function App() {
       OUTGOING: 0,
       INCOMING: 0,
       ORDER: 0,
+      DUTY_ORDER: 0,
       HIRE_ORDER: 0,
       PURCHASE_ORDER: 0,
     };

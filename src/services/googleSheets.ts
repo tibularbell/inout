@@ -82,9 +82,19 @@ export const SHEET_TAB_NAMES: Record<DocumentType, string> = {
   OUTGOING: 'ทะเบียนหนังสือส่ง',
   INCOMING: 'ทะเบียนหนังสือรับ',
   ORDER: 'ทะเบียนคำสั่ง',
+  DUTY_ORDER: 'ทะเบียนคำสั่งเวรยาม',
   HIRE_ORDER: 'ทะเบียนใบสั่งจ้าง',
   PURCHASE_ORDER: 'ทะเบียนใบสั่งซื้อ',
 };
+
+const ALL_DOC_TYPES: DocumentType[] = [
+  'OUTGOING',
+  'INCOMING',
+  'ORDER',
+  'DUTY_ORDER',
+  'HIRE_ORDER',
+  'PURCHASE_ORDER',
+];
 
 // หัวตารางของแต่ละหมวดหมู่
 export const SHEET_HEADERS: Record<DocumentType, string[]> = {
@@ -101,6 +111,10 @@ export const SHEET_HEADERS: Record<DocumentType, string[]> = {
   ],
   ORDER: [
     'รหัสระบบ', 'เลขที่คำสั่ง', 'เลขที่อารบิก', 'วันที่ลงคำสั่ง', 'เรื่อง',
+    'ผู้ลงนาม', 'สถานะ', 'เจ้าหน้าที่ผู้รับผิดชอบ', 'หมายเหตุ', 'วันที่บันทึก'
+  ],
+  DUTY_ORDER: [
+    'รหัสระบบ', 'ลำดับ', 'คำสั่งที่', 'ลงวันที่', 'เรื่อง',
     'ผู้ลงนาม', 'สถานะ', 'เจ้าหน้าที่ผู้รับผิดชอบ', 'หมายเหตุ', 'วันที่บันทึก'
   ],
   HIRE_ORDER: [
@@ -168,6 +182,19 @@ export function docToSheetRow(doc: SarabanDoc): (string | number)[] {
         doc.notes || '',
         doc.createdAt,
       ];
+    case 'DUTY_ORDER':
+      return [
+        doc.id,
+        doc.runningNumber || 1,
+        doc.bookNo,
+        formatThaiDate(doc.date),
+        doc.subject,
+        doc.signer || '',
+        statusLabel,
+        doc.officerInCharge,
+        doc.notes || '',
+        doc.createdAt,
+      ];
     case 'HIRE_ORDER':
       return [
         doc.id,
@@ -210,7 +237,7 @@ export async function createSarabanSpreadsheet(
 ): Promise<SheetConfig> {
   const title = `ทะเบียนสารบรรณอิเล็กทรอนิกส์ รพ.สต.บ้านรี ๒๕๖๙ (${year})`;
 
-  const sheetsPayload = (['OUTGOING', 'INCOMING', 'ORDER', 'HIRE_ORDER', 'PURCHASE_ORDER'] as DocumentType[]).map((t) => ({
+  const sheetsPayload = ALL_DOC_TYPES.map((t) => ({
     properties: {
       title: SHEET_TAB_NAMES[t],
       gridProperties: {
@@ -241,7 +268,7 @@ export async function createSarabanSpreadsheet(
   const spreadsheetUrl = data.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
 
   // ใส่ Header ให้กับทุก Sheet tab
-  for (const docType of ['OUTGOING', 'INCOMING', 'ORDER', 'HIRE_ORDER', 'PURCHASE_ORDER'] as DocumentType[]) {
+  for (const docType of ALL_DOC_TYPES) {
     const tabName = SHEET_TAB_NAMES[docType];
     const headers = SHEET_HEADERS[docType];
     await fetch(
@@ -305,7 +332,7 @@ export async function syncAllDocumentsToGoogleSheet(
 ): Promise<{ success: boolean; count: number; error?: string }> {
   try {
     await ensureSheetTabs(accessToken, spreadsheetId);
-    for (const docType of ['OUTGOING', 'INCOMING', 'ORDER', 'HIRE_ORDER', 'PURCHASE_ORDER'] as DocumentType[]) {
+    for (const docType of ALL_DOC_TYPES) {
       const tabName = SHEET_TAB_NAMES[docType];
       const headers = SHEET_HEADERS[docType];
       const docsInType = allDocs.filter((d) => d.type === docType);

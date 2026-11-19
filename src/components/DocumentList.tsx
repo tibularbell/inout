@@ -18,7 +18,10 @@ import {
   SlidersHorizontal,
   FileCheck,
   Pencil,
-  Paperclip
+  Paperclip,
+  LayoutList,
+  LayoutGrid,
+  CalendarClock
 } from 'lucide-react';
 import { DocumentStatus, DocumentType, Priority, SarabanDoc } from '../types/document';
 import { 
@@ -28,7 +31,8 @@ import {
   formatThaiDateShort, 
   PRIORITY_META, 
   STATUS_META, 
-  toArabicNumerals 
+  toArabicNumerals,
+  toThaiNumerals
 } from '../utils/thaiFormat';
 
 interface DocumentListProps {
@@ -53,6 +57,19 @@ export const DocumentList: React.FC<DocumentListProps> = ({
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'num-desc' | 'num-asc'>('date-desc');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>(
+    filterType === 'DUTY_ORDER' ? 'table' : 'card'
+  );
+
+  React.useEffect(() => {
+    if (filterType === 'DUTY_ORDER') {
+      setViewMode('table');
+      setSortBy('num-asc');
+    } else {
+      setViewMode('card');
+      setSortBy('date-desc');
+    }
+  }, [filterType]);
 
   const handleCopyBookNo = (e: React.MouseEvent, bookNo: string, id: string) => {
     e.stopPropagation();
@@ -186,8 +203,63 @@ export const DocumentList: React.FC<DocumentListProps> = ({
               <option value="num-desc">เลขที่ (มากไปน้อย)</option>
               <option value="num-asc">เลขที่ (น้อยไปมาก)</option>
             </select>
+
+            {/* Card / Table View Switcher */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('card')}
+                title="มุมมองการ์ด"
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'card'
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                title="มุมมองตารางทะเบียน"
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <LayoutList className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Dedicated Official Header Banner when viewing DUTY_ORDER */}
+        {filterType === 'DUTY_ORDER' && (
+          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center flex-shrink-0">
+                <CalendarClock className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                  ทะเบียนหนังสือคำสั่งปฏิบัติงานนอกเวลาราชการและวันหยุดราชการ
+                </h2>
+                <p className="text-xs text-slate-500">
+                  คำสั่งเวรยาม รพ.สต.บ้านรี — แตะแถวเพื่อดูรายละเอียด สั่งพิมพ์ใบปะหน้า หรือ Export as PDF
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenNewDoc}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors self-start sm:self-auto"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>ออกคำสั่งเวรยามใหม่</span>
+            </button>
+          </div>
+        )}
 
         {/* Active Filter Pills if filtered */}
         {(statusFilter !== 'ALL' || priorityFilter !== 'ALL' || searchQuery) && (
@@ -225,6 +297,85 @@ export const DocumentList: React.FC<DocumentListProps> = ({
             <Sparkles className="w-4 h-4" />
             <span>ออกเลขทะเบียนใหม่</span>
           </button>
+        </div>
+      ) : viewMode === 'table' ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[680px]">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700">
+                  <th className="py-3 px-4 text-center w-16 border-r border-slate-200">ลำดับ</th>
+                  <th className="py-3 px-4 w-32 border-r border-slate-200">คำสั่งที่</th>
+                  <th className="py-3 px-4 w-36 border-r border-slate-200">ลงวันที่</th>
+                  <th className="py-3 px-4 border-r border-slate-200">เรื่อง</th>
+                  <th className="py-3 px-4 w-32 border-r border-slate-200">หมายเหตุ</th>
+                  <th className="py-3 px-3 text-center w-28">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 text-xs sm:text-sm">
+                {filteredDocs.map((doc, idx) => {
+                  const statusMeta = STATUS_META[doc.status];
+                  return (
+                    <tr
+                      key={doc.id}
+                      onClick={() => onSelectDoc(doc)}
+                      className="hover:bg-teal-50/40 transition-colors cursor-pointer group"
+                    >
+                      <td className="py-3 px-4 text-center font-semibold text-slate-600 border-r border-slate-100">
+                        {doc.runningNumber || idx + 1}
+                      </td>
+                      <td className="py-3 px-4 font-bold text-slate-900 border-r border-slate-100 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span>{doc.bookNo}</span>
+                          {doc.speed !== 'NORMAL' && (
+                            <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" title={PRIORITY_META[doc.speed].label} />
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                        {toThaiNumerals(formatThaiDateShort(doc.date))}
+                      </td>
+                      <td className="py-3 px-4 text-slate-800 border-r border-slate-100">
+                        <div className="font-medium group-hover:text-teal-800 transition-colors">
+                          {doc.subject}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.badgeClass}`}>
+                            {statusMeta.label}
+                          </span>
+                          {(doc.attachmentUrl || doc.attachmentName) && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
+                              <Paperclip className="w-3 h-3" />
+                              {doc.attachmentName || 'มีไฟล์แนบ'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-slate-500 border-r border-slate-100">
+                        {doc.notes || '-'}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEditDoc(doc);
+                            }}
+                            title="แก้ไขข้อมูล"
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-bold transition-colors"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>แก้ไข</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

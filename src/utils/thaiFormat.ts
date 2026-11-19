@@ -115,6 +115,17 @@ export const DOC_TYPE_META: Record<DocumentType, {
     badgeText: 'text-purple-700',
     iconName: 'FileBadge',
   },
+  DUTY_ORDER: {
+    label: 'คำสั่งเวรยาม (นอกเวลา/วันหยุด)',
+    shortLabel: 'คำสั่งเวรยาม',
+    codePrefix: '',
+    defaultPattern: '{num}/{year}',
+    description: 'ทะเบียนหนังสือคำสั่งปฏิบัติงานนอกเวลาราชการและวันหยุดราชการ',
+    color: 'teal',
+    badgeBg: 'bg-teal-50 text-teal-800 border-teal-200',
+    badgeText: 'text-teal-700',
+    iconName: 'CalendarClock',
+  },
   HIRE_ORDER: {
     label: 'ใบสั่งจ้าง',
     shortLabel: 'เลขที่สั่งจ้าง',
