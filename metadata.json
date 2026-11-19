@@ -1,0 +1,6 @@
+{
+  "name": "ระบบสารบรรณอิเล็กทรอนิกส์ รพ.สต.บ้านรี",
+  "description": "ระบบทะเบียนหนังสือรับ-ส่ง คำสั่ง ใบสั่งจ้าง และใบสั่งซื้อ ออนไลน์ พร้อมระบบติดตามสถานะและการแจ้งเตือนสำหรับ รพ.สต.บ้านรี เชื่อมต่อ Google Sheets",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
