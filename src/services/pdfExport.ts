@@ -9,6 +9,7 @@ import {
   STATUS_META,
   toThaiNumerals,
 } from '../utils/thaiFormat';
+import { loadAgencyConfig } from './agencyConfig';
 
 const PAGE_WIDTH_UNITS = 827;
 const PAGE_HEIGHT_UNITS = 1170;
@@ -138,12 +139,13 @@ export async function exportCoverSlipPdf(doc: SarabanDoc): Promise<string> {
     }
   }
 
+  const agency = loadAgencyConfig();
   const typeMeta = DOC_TYPE_META[doc.type];
   const priorityMeta = PRIORITY_META[doc.speed];
   const secretMeta = CONFIDENTIAL_META[doc.secret];
   const statusMeta = STATUS_META[doc.status];
 
-  const qrData = `รพ.สต.บ้านรี | ทะเบียน: ${doc.bookNo} | เรื่อง: ${doc.subject} | สถานะ: ${statusMeta.label}`;
+  const qrData = `${agency.shortName} | ทะเบียน: ${doc.bookNo} | เรื่อง: ${doc.subject} | สถานะ: ${statusMeta.label}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData)}`;
   const qrImg = await loadQrImage(qrUrl);
 
@@ -183,12 +185,12 @@ export async function exportCoverSlipPdf(doc: SarabanDoc): Promise<string> {
   ctx.fillStyle = '#0F172A';
   ctx.textAlign = 'center';
   ctx.font = `700 22px ${FONT_STACK}`;
-  ctx.fillText('โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี', PAGE_WIDTH_UNITS / 2, y);
+  ctx.fillText(agency.fullName, PAGE_WIDTH_UNITS / 2, y);
 
   y += 24;
   ctx.fillStyle = '#334155';
   ctx.font = `500 15px ${FONT_STACK}`;
-  ctx.fillText('ตำบลบ้านรี อำเภอดอนพุด จังหวัดสระบุรี', PAGE_WIDTH_UNITS / 2, y);
+  ctx.fillText(agency.address, PAGE_WIDTH_UNITS / 2, y);
 
   // Official Banner
   y += 18;
@@ -361,7 +363,7 @@ export async function exportCoverSlipPdf(doc: SarabanDoc): Promise<string> {
   y += 24;
   ctx.fillStyle = '#0F172A';
   ctx.font = `700 15px ${FONT_STACK}`;
-  ctx.fillText('คำสั่งการ / การเกษียรหนังสือ (ผอ.รพ.สต.บ้านรี):', contentX, y);
+  ctx.fillText(`คำสั่งการ / การเกษียรหนังสือ (ผอ.${agency.shortName}):`, contentX, y);
 
   y += 14;
   const endorseBoxH = 195;
@@ -398,11 +400,11 @@ export async function exportCoverSlipPdf(doc: SarabanDoc): Promise<string> {
 
   // Signature block
   y += endorseBoxH + 46;
-  const thaiYear = toThaiNumerals(doc.year || 2570);
+  const thaiYear = toThaiNumerals(doc.year || agency.fiscalYear || 2570);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#0F172A';
   ctx.font = `500 14px ${FONT_STACK}`;
-  ctx.fillText('ลงชื่อ ............................................................ ผอ.รพ.สต.บ้านรี', contentX + contentW, y);
+  ctx.fillText(`ลงชื่อ ............................................................ ผอ.${agency.shortName}`, contentX + contentW, y);
   y += 24;
   ctx.fillText(`(............ / ............ / พ.ศ. ${thaiYear})`, contentX + contentW - 32, y);
 
@@ -426,7 +428,7 @@ export async function exportCoverSlipPdf(doc: SarabanDoc): Promise<string> {
   );
   ctx.fillStyle = '#64748B';
   ctx.font = `400 12px ${FONT_STACK}`;
-  ctx.fillText('ระบบสารบรรณอิเล็กทรอนิกส์ รพ.สต.บ้านรี (E-Saraban)', contentX, footerY + 68);
+  ctx.fillText(`ระบบสารบรรณอิเล็กทรอนิกส์ ${agency.shortName} (E-Saraban)`, contentX, footerY + 68);
 
   if (qrImg) {
     const qrSize = 72;

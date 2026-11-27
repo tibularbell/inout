@@ -23,6 +23,8 @@ import { NotificationCenter } from './components/NotificationCenter';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { QRScanModal } from './components/QRScanModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
+import { ShareAndAgencyModal } from './components/ShareAndAgencyModal';
+import { AgencyConfig, loadAgencyConfig } from './services/agencyConfig';
 
 import { 
   DocumentStatus, 
@@ -42,10 +44,14 @@ import {
   updateDocument 
 } from './services/storage';
 import { 
+  checkRedirectAuthResult,
   getAccessToken, 
   googleSignIn, 
+  googleSignInRedirect,
   initAuth, 
   logout, 
+  mapAuthErrorToThai,
+  resetSignInFlag,
   setAccessTokenInMemory 
 } from './services/auth';
 import { 
@@ -80,6 +86,8 @@ export default function App() {
   const [googleUser, setGoogleUser] = useState<User | null>(null);
   const [googleUserEmail, setGoogleUserEmail] = useState<string | null>(null);
   const [isSigningInGoogle, setIsSigningInGoogle] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const signInAttemptRef = React.useRef(0);
   const [sheetConfig, setSheetConfig] = useState<SheetConfig | null>(() => getStoredSheetConfig());
   const [isSyncingSheet, setIsSyncingSheet] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -91,6 +99,8 @@ export default function App() {
   const [isSheetsModalOpen, setIsSheetsModalOpen] = useState(false);
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [agencyConfig, setAgencyConfig] = useState<AgencyConfig>(() => loadAgencyConfig());
 
   // Destructive Confirmation Modal State (MANDATORY per Workspace Skill)
   const [confirmModal, setConfirmModal] = useState<{
@@ -190,16 +200,51 @@ export default function App() {
     return alerts.filter((a) => !a.read).length;
   }, [alerts]);
 
-  // Handle Google Sign In
+  // Check if returning from signInWithRedirect on mobile/Safari
+  useEffect(() => {
+    checkRedirectAuthResult()
+      .then((res) => {
+        if (!res) return;
+        setGoogleUser(res.user);
+        setGoogleUserEmail(res.user.email);
+        const isAdmin =
+          res.user.email &&
+          (res.user.email.toLowerCase() === 'tibularbell@gmail.com' ||
+            ADMIN_EMAILS.includes(res.user.email.toLowerCase()));
+        if (isAdmin) {
+          setCurrentUser({
+            uid: res.user.uid,
+            name: res.user.displayName || 'ผู้ดูแลระบบ รพ.สต.บ้านรี (Admin)',
+            email: res.user.email || 'tibularbell@gmail.com',
+            role: 'ADMIN',
+            avatarUrl: res.user.photoURL || undefined,
+          });
+        }
+        showToast(`เข้าสู่ระบบ Google สำเร็จ (${res.user.email})`, 'success');
+      })
+      .catch((err) => {
+        setAuthError(mapAuthErrorToThai(err));
+      });
+  }, [showToast]);
+
+  // Handle Google Sign In (Popup)
   const handleGoogleSignIn = async () => {
+    const attemptId = ++signInAttemptRef.current;
+    setAuthError(null);
     setIsSigningInGoogle(true);
     try {
       const res = await googleSignIn();
+      if (attemptId !== signInAttemptRef.current) return;
+
       if (res) {
         setGoogleUser(res.user);
         setGoogleUserEmail(res.user.email);
-        
-        const isAdmin = res.user.email && (res.user.email.toLowerCase() === 'tibularbell@gmail.com' || ADMIN_EMAILS.includes(res.user.email.toLowerCase()));
+        setIsSigningInGoogle(false);
+
+        const isAdmin =
+          res.user.email &&
+          (res.user.email.toLowerCase() === 'tibularbell@gmail.com' ||
+            ADMIN_EMAILS.includes(res.user.email.toLowerCase()));
         if (isAdmin) {
           setCurrentUser({
             uid: res.user.uid,
@@ -214,19 +259,56 @@ export default function App() {
         }
         playSuccessSound();
 
-        // Connect and sync with the designated Google Spreadsheet ID
+        // Background sync with designated Google Spreadsheet ID (does NOT block login spinner)
         if (res.accessToken) {
+          setIsSyncingSheet(true);
           try {
-            await syncAllDocumentsToGoogleSheet(res.accessToken, sheetConfig?.spreadsheetId || DEFAULT_SPREADSHEET_ID, documents);
-            showToast('เชื่อมต่อและซิงค์ข้อมูลกับ Google Sheets เรียบร้อยแล้ว', 'success');
+            const syncRes = await syncAllDocumentsToGoogleSheet(
+              res.accessToken,
+              sheetConfig?.spreadsheetId || DEFAULT_SPREADSHEET_ID,
+              documents
+            );
+            if (syncRes.success) {
+              setSheetConfig(getStoredSheetConfig());
+              showToast('เชื่อมต่อและซิงค์ข้อมูลกับ Google Sheets เรียบร้อยแล้ว', 'success');
+            } else if (syncRes.error) {
+              showToast(syncRes.error, 'error');
+            }
           } catch (syncErr: any) {
             console.error('Initial sync error:', syncErr);
+          } finally {
+            setIsSyncingSheet(false);
           }
         }
       }
     } catch (err: any) {
-      showToast(`เข้าสู่ระบบไม่สำเร็จ: ${err.message || 'โปรดลองอีกครั้ง'}`, 'error');
+      if (attemptId !== signInAttemptRef.current) return;
+      const friendlyMsg = mapAuthErrorToThai(err);
+      setAuthError(friendlyMsg);
+      showToast(`เข้าสู่ระบบไม่สำเร็จ: ${friendlyMsg}`, 'error');
     } finally {
+      if (attemptId === signInAttemptRef.current) {
+        setIsSigningInGoogle(false);
+      }
+    }
+  };
+
+  const handleCancelSignIn = () => {
+    signInAttemptRef.current++;
+    resetSignInFlag();
+    setIsSigningInGoogle(false);
+    setAuthError('ยกเลิกการเข้าสู่ระบบแล้ว สามารถกดลองใหม่ หรือเลือกวิธีสำรองด้านล่าง');
+  };
+
+  const handleGoogleSignInRedirect = async () => {
+    setAuthError(null);
+    setIsSigningInGoogle(true);
+    try {
+      await googleSignInRedirect();
+    } catch (err: any) {
+      const friendlyMsg = mapAuthErrorToThai(err);
+      setAuthError(friendlyMsg);
+      showToast(`เข้าสู่ระบบไม่สำเร็จ: ${friendlyMsg}`, 'error');
       setIsSigningInGoogle(false);
     }
   };
@@ -413,7 +495,7 @@ export default function App() {
       
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold text-white transition-all animate-in slide-in-from-top-4 backdrop-blur-md print:hidden"
+        <div className="fixed top-4 right-4 z-[100] flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold text-white transition-all animate-in slide-in-from-top-4 backdrop-blur-md print:hidden"
           style={{
             backgroundColor:
               toastMessage.type === 'success'
@@ -439,6 +521,8 @@ export default function App() {
         }}
         onOpenSheetsModal={() => setIsSheetsModalOpen(true)}
         onOpenScanner={() => setIsScannerOpen(true)}
+        onOpenShareModal={() => setIsShareModalOpen(true)}
+        agencyConfig={agencyConfig}
         sheetConfig={sheetConfig}
         googleUserEmail={googleUserEmail}
         isSyncingSheet={isSyncingSheet}
@@ -490,7 +574,7 @@ export default function App() {
       {/* Footer */}
       <footer className="mt-auto py-4 border-t border-slate-200 text-center text-xs text-slate-500 bg-white/70 print:hidden">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© ๒๕๖๙ โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี อ.ดอนพุด จ.สระบุรี</p>
+          <p>© {toThaiNumerals(agencyConfig.fiscalYear)} {agencyConfig.fullName} {agencyConfig.address}</p>
           <p className="text-[11px] text-slate-400">
             ระบบสารบรรณและพัสดุอิเล็กทรอนิกส์ (E-Saraban) รองรับสมาร์ทโฟนและเชื่อมต่อ Google Workspace
           </p>
@@ -535,7 +619,11 @@ export default function App() {
         isAuthenticated={!!googleUser}
         googleUserEmail={googleUserEmail}
         onGoogleSignIn={handleGoogleSignIn}
+        onGoogleSignInRedirect={handleGoogleSignInRedirect}
+        onCancelSignIn={handleCancelSignIn}
         isSigningIn={isSigningInGoogle}
+        authError={authError}
+        onClearAuthError={() => setAuthError(null)}
         sheetConfig={sheetConfig}
         onCreateNewSheet={handleCreateNewSheet}
         onSyncAll={handleSyncAllToSheet}
@@ -582,13 +670,25 @@ export default function App() {
         onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
       />
 
+      {/* 7. Share & Agency Config Modal */}
+      <ShareAndAgencyModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        agencyConfig={agencyConfig}
+        onAgencyUpdate={(next) => {
+          setAgencyConfig(next);
+          showToast(`อัปเดตข้อมูลหน่วยงานเป็น ${next.shortName} เรียบร้อยแล้ว`, 'success');
+        }}
+        onOpenSheetsModal={() => setIsSheetsModalOpen(true)}
+      />
+
       {/* PRINT SLIP TEMPLATE (Only renders on print) */}
       {selectedDoc && (
         <div className="hidden print:block print-slip">
           <div className="border-4 border-double border-slate-800 p-8 max-w-2xl mx-auto text-black font-serif">
             <div className="text-center pb-4 border-b-2 border-slate-700">
-              <h1 className="text-xl font-bold tracking-tight">โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี</h1>
-              <p className="text-sm">ตำบลบ้านรี อำเภอดอนพุด จังหวัดสระบุรี</p>
+              <h1 className="text-xl font-bold tracking-tight">{agencyConfig.fullName}</h1>
+              <p className="text-sm">{agencyConfig.address}</p>
               <h2 className="text-lg font-bold mt-2 bg-slate-200 py-1 rounded">
                 บัตรตรวจติดตามงานสารบรรณ / ใบปะหน้าเอกสารราชการ
               </h2>
@@ -627,19 +727,19 @@ export default function App() {
             )}
 
             <div className="mt-6 pt-4 border-t-2 border-slate-400">
-              <div className="text-sm font-bold mb-2">คำสั่งการ / การเกษียรหนังสือ (ผอ.รพ.สต.บ้านรี):</div>
+              <div className="text-sm font-bold mb-2">คำสั่งการ / การเกษียรหนังสือ (ผอ.{agencyConfig.shortName}):</div>
               <div className="min-h-[90px] border border-dashed border-slate-400 p-3 rounded text-sm italic">
                 {selectedDoc.endorsement || '(...........................................................................................................)'}
               </div>
               <div className="text-right mt-4 text-xs">
-                ลงชื่อ .................................................... ผอ.รพ.สต.บ้านรี<br />
-                (....... / ....... / {toThaiNumerals(selectedDoc.year || 2570)})
+                ลงชื่อ .................................................... ผอ.{agencyConfig.shortName}<br />
+                (....... / ....... / {toThaiNumerals(selectedDoc.year || agencyConfig.fiscalYear)})
               </div>
             </div>
 
             <div className="mt-6 pt-3 border-t border-slate-300 flex items-center justify-between text-xs text-slate-500">
               <span>ผู้รับผิดชอบ: {selectedDoc.officerInCharge}</span>
-              <span>พิมพ์จากระบบสารบรรณ รพ.สต.บ้านรี (E-Saraban)</span>
+              <span>พิมพ์จากระบบสารบรรณ {agencyConfig.shortName} (E-Saraban)</span>
             </div>
           </div>
         </div>

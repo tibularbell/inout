@@ -9,10 +9,13 @@ import {
   ShieldCheck, 
   ChevronDown,
   LogOut,
-  RefreshCw
+  RefreshCw,
+  Share2
 } from 'lucide-react';
 import { StaffUser } from '../types/document';
 import { SheetConfig } from '../services/googleSheets';
+import { AgencyConfig } from '../services/agencyConfig';
+import { toThaiNumerals } from '../utils/thaiFormat';
 
 interface HeaderProps {
   currentUser: StaffUser;
@@ -22,6 +25,8 @@ interface HeaderProps {
   onOpenNewDoc: () => void;
   onOpenSheetsModal: () => void;
   onOpenScanner: () => void;
+  onOpenShareModal: () => void;
+  agencyConfig: AgencyConfig;
   sheetConfig: SheetConfig | null;
   googleUserEmail: string | null;
   isSyncingSheet: boolean;
@@ -77,6 +82,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenNewDoc,
   onOpenSheetsModal,
   onOpenScanner,
+  onOpenShareModal,
+  agencyConfig,
   sheetConfig,
   googleUserEmail,
   isSyncingSheet,
@@ -118,17 +125,17 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h1 className="text-base sm:text-xl font-bold tracking-tight text-white truncate">
-                  รพ.สต.บ้านรี
+                  {agencyConfig.shortName}
                 </h1>
                 <span className="hidden xs:inline-block px-2 py-0.5 text-[11px] font-semibold bg-emerald-800/80 text-emerald-200 rounded-full border border-emerald-700">
                   ระบบสารบรรณอิเล็กทรอนิกส์
                 </span>
                 <span className="text-xs text-emerald-300 font-medium hidden md:inline">
-                  (ปี พ.ศ. ๒๕๗๐)
+                  (ปี พ.ศ. {toThaiNumerals(agencyConfig.fiscalYear)})
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-emerald-200/90 truncate">
-                โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี อ.ดอนพุด จ.สระบุรี
+                {agencyConfig.fullName} {agencyConfig.address}
               </p>
             </div>
           </div>
@@ -184,6 +191,17 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300" />
               <span className="hidden xl:inline">สแกน QR</span>
+            </button>
+
+            {/* Share & Agency Config Button */}
+            <button
+              type="button"
+              onClick={onOpenShareModal}
+              title="แนะนำระบบให้หน่วยงานอื่นใช้ / ตั้งค่าหน่วยงาน"
+              className="p-2 sm:px-2.5 sm:py-2 text-emerald-200 hover:text-white hover:bg-emerald-800/70 rounded-lg transition-colors flex items-center gap-1 text-xs"
+            >
+              <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300" />
+              <span className="hidden lg:inline">แชร์ / ตั้งค่า</span>
             </button>
 
             {/* Notification Bell */}

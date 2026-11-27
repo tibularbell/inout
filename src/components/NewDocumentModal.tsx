@@ -16,6 +16,7 @@ import {
 import { Confidentiality, DocumentStatus, DocumentType, Priority, SarabanDoc, StaffUser } from '../types/document';
 import { toArabicNumerals, toThaiNumerals } from '../utils/thaiFormat';
 import { getNextRunningNumber } from '../services/storage';
+import { loadAgencyConfig } from '../services/agencyConfig';
 
 interface NewDocumentModalProps {
   isOpen: boolean;
@@ -103,8 +104,9 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
       setAttachmentUrl(editingDoc.attachmentUrl || null);
     } else {
       const today = new Date().toISOString().split('T')[0];
+      const agency = loadAgencyConfig();
       setDocType(initialType);
-      setYear(2570);
+      setYear(agency.fiscalYear || 2570);
       setUseAutoNumber(true);
       setDate(today);
       setReceivedOrSentDate(today);
@@ -112,13 +114,13 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
       setSpeed('NORMAL');
       setSecret('NORMAL');
       setOfficerInCharge(currentUser.name);
-      setSigner('นายสมพงษ์ มลิวัลย์ (ผอ.รพ.สต.บ้านรี)');
+      setSigner(`${agency.directorName} (ผอ.${agency.shortName})`);
       setEndorsement('');
       setNotes('');
       setDueDate('');
       setAmount('');
       setContractorOrShop('');
-      setBudgetType('เงินบำรุง รพ.สต.บ้านรี');
+      setBudgetType(`เงินบำรุง ${agency.shortName}`);
       setInspectionDate('');
       setAttachmentName(null);
       setAttachmentUrl(null);
@@ -137,28 +139,29 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
     }
 
     if (!editingDoc) {
+      const agency = loadAgencyConfig();
       if (docType === 'OUTGOING') {
-        setFromDept('โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี');
+        setFromDept(agency.fullName);
         setToDept('');
         setStatus('PROCESSING');
       } else if (docType === 'INCOMING') {
         setFromDept('');
-        setToDept('โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี');
+        setToDept(agency.fullName);
         setStatus('PENDING');
       } else if (docType === 'ORDER') {
-        setFromDept('โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี');
+        setFromDept(agency.fullName);
         setToDept('เจ้าหน้าที่ผู้มีรายนามตามคำสั่ง');
         setStatus('COMPLETED');
       } else if (docType === 'DUTY_ORDER') {
-        setFromDept('โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านรี');
-        setToDept('เจ้าหน้าที่ รพ.สต.บ้านรี (ปฏิบัติงานนอกเวลา/วันหยุด)');
+        setFromDept(agency.fullName);
+        setToDept(`เจ้าหน้าที่ ${agency.shortName} (ปฏิบัติงานนอกเวลา/วันหยุด)`);
         setStatus('COMPLETED');
       } else if (docType === 'HIRE_ORDER') {
-        setFromDept('งานพัสดุ รพ.สต.บ้านรี');
+        setFromDept(`งานพัสดุ ${agency.shortName}`);
         setToDept('');
         setStatus('PROCESSING');
       } else if (docType === 'PURCHASE_ORDER') {
-        setFromDept('งานเภสัชกรรมและพัสดุ รพ.สต.บ้านรี');
+        setFromDept(`งานเภสัชกรรมและพัสดุ ${agency.shortName}`);
         setToDept('');
         setStatus('AWAITING_SIGNATURE');
       }

@@ -339,7 +339,7 @@ export async function syncAllDocumentsToGoogleSheet(
       const rows = [headers, ...docsInType.map(docToSheetRow)];
 
       // ล้างข้อมูลเดิมแล้วเขียนทับแบบระเบียบเรียบร้อย
-      await fetch(
+      const putRes = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(tabName)}!A1:Z?valueInputOption=USER_ENTERED`,
         {
           method: 'PUT',
@@ -352,6 +352,17 @@ export async function syncAllDocumentsToGoogleSheet(
           }),
         }
       );
+
+      if (!putRes.ok) {
+        if (putRes.status === 403) {
+          throw new Error('บัญชี Google นี้ไม่มีสิทธิ์แก้ไขไฟล์ Google Sheets ที่ผูกไว้ กรุณากด "สร้าง Google Sheets ทะเบียนเล่มใหม่" ในบัญชีของท่าน');
+        }
+        if (putRes.status === 404) {
+          throw new Error('ไม่พบไฟล์ Google Sheets ที่ระบุ กรุณากด "สร้าง Google Sheets ทะเบียนเล่มใหม่"');
+        }
+        const errBody = await putRes.text();
+        throw new Error(`ซิงค์ข้อมูลไม่สำเร็จ (${putRes.status}): ${errBody}`);
+      }
     }
 
     const current = getStoredSheetConfig();

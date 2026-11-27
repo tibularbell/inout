@@ -2,6 +2,7 @@ import { AuditLogEntry, DocumentType, RealtimeAlert, SarabanDoc } from '../types
 import { toArabicNumerals, toThaiNumerals } from '../utils/thaiFormat';
 import { playNotificationSound, playUrgentSound } from './sound';
 import { deleteAttachmentFromIDB, saveAttachmentToIDB } from './attachmentStore';
+import { loadAgencyConfig } from './agencyConfig';
 
 const STORAGE_KEY_DOCS = 'banri_saraban_documents_v1';
 const STORAGE_KEY_ALERTS = 'banri_saraban_alerts_v1';
@@ -442,21 +443,23 @@ export function getNextRunningNumber(type: DocumentType, year = 2569): {
   const runningArabic = String(nextRunning).padStart(2, '0');
   const yearThai = toThaiNumerals(year);
 
+  const agency = loadAgencyConfig();
+
   let bookNoThai = '';
   let bookNoArabic = '';
 
   switch (type) {
     case 'OUTGOING':
-      bookNoThai = `สธ ๐๕๑๒.๐๓/${toThaiNumerals(nextRunning)}`;
-      bookNoArabic = `สธ 0512.03/${nextRunning}`;
+      bookNoThai = `${agency.outgoingPrefix}${toThaiNumerals(nextRunning)}`;
+      bookNoArabic = `${toArabicNumerals(agency.outgoingPrefix)}${nextRunning}`;
       break;
     case 'INCOMING':
       bookNoThai = `รับ ${toThaiNumerals(nextRunning)}/${yearThai}`;
       bookNoArabic = `รับ ${nextRunning}/${year}`;
       break;
     case 'ORDER':
-      bookNoThai = `คำสั่ง รพ.สต.บ้านรี ที่ ${toThaiNumerals(nextRunning)}/${yearThai}`;
-      bookNoArabic = `คำสั่ง รพ.สต.บ้านรี ที่ ${nextRunning}/${year}`;
+      bookNoThai = `คำสั่ง ${agency.shortName} ที่ ${toThaiNumerals(nextRunning)}/${yearThai}`;
+      bookNoArabic = `คำสั่ง ${agency.shortName} ที่ ${nextRunning}/${year}`;
       break;
     case 'DUTY_ORDER':
       bookNoThai = `${nextRunning}/${year}`;
